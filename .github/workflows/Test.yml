@@ -28,9 +28,9 @@ jobs:
       - uses: game-ci/unity-test-runner@v4
         id: tests
         env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_LICENSE: SC-6PUQ-3N6R-YJXN-URSR-CNUZ
+          UNITY_EMAIL: ba.s@dcjudgement.com
+          UNITY_PASSWORD: Matrix000
         with:
           projectPath: ${{ matrix.projectPath }}
           testMode: ${{ matrix.testMode }}
