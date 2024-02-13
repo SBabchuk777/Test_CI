@@ -1,125 +1,102 @@
-name: Builds - Windows
+name: GameCI Template 🎮
 
-on:
-  workflow_dispatch:
-  push:
+on: push
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+env:
+  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
 
 jobs:
-  buildForAllPlatformsWindows:
-    name: ${{ matrix.targetPlatform }} on ${{ matrix.unityVersion }}
-    runs-on: windows-2022
+  testRunner:
+    name: Test in ${{ matrix.testMode }} ✨
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        projectPath:
-          - test-project
-        unityVersion:
-          - 2021.3.22f1
-        targetPlatform:
-          - Android # Build an Android apk.
+        testMode:
+          - EditMode
+          - PlayMode
     steps:
-      ###########################
-      #         Checkout        #
-      ###########################
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      ###########################
-      #          Cache          #
-      ###########################
-      - uses: actions/cache@v4
+      - name: Create LFS file list
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+      - name: Restore LFS cache
+        uses: actions/cache@v2
+        id: lfs-cache
         with:
-          path: ${{ matrix.projectPath }}/Library
-          key: Library-${{ matrix.projectPath }}-windows-${{ matrix.targetPlatform }}
+          path: .git/lfs
+          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
+
+      - name: Git LFS Pull
+        run: |
+          git lfs pull
+          git add .
+          git reset --hard
+
+      - name: Restore Library cache
+        uses: actions/cache@v2
+        with:
+          path: Library
+          key: Library-test-project-${{ matrix.targetPlatform }}
           restore-keys: |
-            Library-${{ matrix.projectPath }}-windows-
+            Library-test-project-
             Library-
 
-      ###########################
-      #  Set Scripting Backend  #
-      ###########################
-      - name: Set Scripting Backend To il2cpp
+      - name: Run tests
+        uses: game-ci/unity-test-runner@v2
+        id: testRunner
+        with:
+          testMode: ${{ matrix.testMode }}
+          checkName: ${{ matrix.testMode }} test results
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Test results (${{ matrix.testMode }})
+          path: ${{ steps.testRunner.outputs.artifactsPath }}
+
+  buildAndroid:
+    needs: testRunner
+    name: Build for Android 📱
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Create LFS file list
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+      - name: Restore LFS cache
+        uses: actions/cache@v2
+        id: lfs-cache
+        with:
+          path: .git/lfs
+          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
+
+      - name: Git LFS Pull
         run: |
-          Move-Item -Path "./test-project/ProjectSettings/ProjectSettingsIl2cpp.asset" -Destination "./test-project/ProjectSettings/ProjectSettings.asset" -Force
+          git lfs pull
+          git add .
+          git reset --hard
 
-      ###########################
-      #          Build          #
-      ###########################
-      - name: Build
-        uses: ./
-        id: build-1
-        continue-on-error: true
-        timeout-minutes: 30
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+      - name: Restore Library cache
+        uses: actions/cache@v2
         with:
-          buildName: 'GameCI Test Build'
-          projectPath: ${{ matrix.projectPath }}
-          unityVersion: ${{ matrix.unityVersion }}
-          targetPlatform: ${{ matrix.targetPlatform }}
-          customParameters: -profile SomeProfile -someBoolean -someValue exampleValue
-          allowDirtyBuild: true
-      # We use dirty build because we are replacing the default project settings file above
+          path: Library
+          key: Library-build-Android
+          restore-keys: |
+            Library-build-
+            Library-
 
-      - name: Sleep for Retry
-        if: ${{ steps.build-1.outcome == 'failure' }}
-        run: |
-          Start-Sleep -s 120
-
-      - name: Build Retry 1
-        uses: ./
-        id: build-2
-        continue-on-error: true
-        timeout-minutes: 30
-        if: steps.build-1.outcome == 'failure'
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+      - uses: game-ci/unity-builder@v2
         with:
-          buildName: 'GameCI Test Build'
-          projectPath: ${{ matrix.projectPath }}
-          unityVersion: ${{ matrix.unityVersion }}
-          targetPlatform: ${{ matrix.targetPlatform }}
-          customParameters: -profile SomeProfile -someBoolean -someValue exampleValue
-          allowDirtyBuild: true
-      # We use dirty build because we are replacing the default project settings file above
+          targetPlatform: Android
 
-      - name: Sleep for Retry
-        if: ${{ steps.build-1.outcome == 'failure' && steps.build-2.outcome == 'failure' }}
-        run: |
-          Start-Sleep -s 240
-
-      - name: Build Retry 2
-        uses: ./
-        id: build-3
-        timeout-minutes: 30
-        if: ${{ steps.build-1.outcome == 'failure' && steps.build-2.outcome == 'failure' }}
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+      - uses: actions/upload-artifact@v2
         with:
-          buildName: 'GameCI Test Build'
-          projectPath: ${{ matrix.projectPath }}
-          unityVersion: ${{ matrix.unityVersion }}
-          targetPlatform: ${{ matrix.targetPlatform }}
-          customParameters: -profile SomeProfile -someBoolean -someValue exampleValue
-          allowDirtyBuild: true
-      # We use dirty build because we are replacing the default project settings file above
-
-      ###########################
-      #          Upload         #
-      ###########################
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Build ${{ matrix.targetPlatform }} on Windows (${{ matrix.unityVersion }})
-          path: build
-          retention-days: 14
+          name: build-Android
+          path: build/Android
