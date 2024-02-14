@@ -40,3 +40,7 @@ jobs:
           name: Build-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}
       
+      # Return License
+      - name: Return license
+        uses: game-ci/unity-return-license@v2
+        if: always()
