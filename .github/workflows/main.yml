@@ -4,7 +4,7 @@ on: [workflow_dispatch]
 
 jobs:
   buildForAllSupportedPlatforms:
-    name: Build for ${{ matrix.targetPlatform }}
+    name: Build for ${{ matrix.targetPlatform }} on ${{ matrix.unityVersion }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -17,17 +17,32 @@ jobs:
           - iOS # Build an iOS player.
           - Android # Build an Android .apk standalone app.
     steps:
+      ###########################
+      #        Checkout         #
+      ###########################
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
+
+      ###########################
+      #         Cache           #
+      ###########################
       - uses: actions/cache@v3
         with:
           path: Library
           key: Library-${{ matrix.targetPlatform }}
           restore-keys: Library-
+
+      ###########################
+      #          Disk           #
+      ###########################
       - if: matrix.targetPlatform == 'Android'
         uses: jlumbroso/free-disk-space@v1.3.1
+      
+      ###########################
+      #          Build          #
+      ###########################
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -35,12 +50,18 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
+      
+      ###########################
+      #          Upload         #
+      ###########################
       - uses: actions/upload-artifact@v3
         with:
           name: Build-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}
-      
-      # Return License
+          
+      ###########################
+      #     Return License      #
+      ###########################
       - name: Return license
         uses: game-ci/unity-return-license@v2
         if: always()
