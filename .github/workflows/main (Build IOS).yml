@@ -70,8 +70,8 @@ jobs:
       - name: Download iOS Artifact
         uses: actions/download-artifact@v3
         with:
-          name: build-iOS
-          path: build/iOS
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
 
       - name: Fix File Permissions and Run fastlane
         env:
