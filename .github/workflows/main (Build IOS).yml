@@ -54,10 +54,10 @@ jobs:
       ###########################
       #          Upload         #
       ###########################
-      #- uses: actions/upload-artifact@v3
-      #  with:
-      #    name: Build-${{ matrix.targetPlatform }}
-      #    path: build/${{ matrix.targetPlatform }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
 
   releaseToAppStore:
     name: Release to the App Store
