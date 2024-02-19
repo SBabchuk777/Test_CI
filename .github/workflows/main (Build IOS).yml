@@ -63,6 +63,11 @@ jobs:
     name: Release to the App Store
     runs-on: macos-latest
     needs: buildForAllSupportedPlatforms
+    strategy:
+      matrix:
+        targetPlatform:
+          - iOS # Build an iOS player.
+          #- Android # Build an Android .apk standalone app.
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
