@@ -69,15 +69,24 @@ jobs:
           - iOS # Build an iOS player.
           #- Android # Build an Android .apk standalone app.
     steps:
+      ###########################
+      #        Checkout         #
+      ###########################
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      ###########################
+      #  Download iOS Artifact  #
+      ###########################
       - name: Download iOS Artifact
         uses: actions/download-artifact@v3
         with:
           name: Build-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}
 
+      ###########################################
+      #  Fix File Permissions and Run fastlane  #
+      ###########################################
       - name: Fix File Permissions and Run fastlane
         env:
           APPLE_CONNECT_EMAIL: ${{ secrets.APPLE_CONNECT_EMAIL }}
@@ -100,9 +109,13 @@ jobs:
           ssh-add - <<< "${MATCH_DEPLOY_KEY}"
           find $IOS_BUILD_PATH -type f -name "**.sh" -exec chmod +x {} \;
           bundle install
-          bundle exec fastlane ios release
+          #bundle exec fastlane ios release
+          bundle exec fastlane ios beta
           #bundle exec fastlane ios build
 
+      ####################################
+      #  Cleanup to avoid storage limit  #
+      ####################################
       - name: Cleanup to avoid storage limit
         if: always()
         uses: geekyeggo/delete-artifact@v2
