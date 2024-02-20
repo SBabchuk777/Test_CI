@@ -32,9 +32,8 @@ platform :ios do
 
   desc "Deliver a new Release build to the App Store"
   lane :release do
-    version = ENV['APP_VERSION'] # Отримання версії з середовища
     build
-    upload_to_app_store(app_version: version) # Виставлення додатка в App Store з використанням версії
+    upload_to_app_store # Виставлення додатка в App Store з використанням версії
   end
 
   desc "Deliver a new Beta build to Apple TestFlight"
