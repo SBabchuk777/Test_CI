@@ -33,6 +33,7 @@ platform :ios do
   desc "Deliver a new Release build to the App Store"
   lane :release do
     build
+    deliver
     upload_to_app_store(
       submit_for_review: false,
       automatic_release: false,
