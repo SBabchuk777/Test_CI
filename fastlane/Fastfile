@@ -34,10 +34,10 @@ platform :ios do
   lane :release do
     build
     upload_to_app_store(
-      submit_for_review: false
-      automatic_release: false
-      force: true
-      skip_screenshots: true
+      submit_for_review: false,
+      automatic_release: false,
+      force: true,
+      skip_screenshots: true,
       run_precheck_before_submit: false
     )
   end
